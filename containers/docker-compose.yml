@@ -1,0 +1,108 @@
+version: "3.4"
+
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    environment:
+      - VIRTUAL_HOST=portainer.home.lan
+      - VIRTUAL_PORT=9000
+    ports:
+      - 9000:9000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /storage/data/portainer:/data 
+    restart: unless-stopped
+
+  rpi-monitor:
+    image: michaelmiklis/rpi-monitor:latest
+    container_name: rpi-monitor
+    environment:
+      - VIRTUAL_HOST=rpi-monitor.home.lan
+      - VIRTUAL_PORT=8888
+    devices:
+      - /dev/vchiq
+      - /dev/vcsm-cma
+    volumes:
+      - /opt/vc:/opt/vc
+      - /flash:/boot
+      - /sys:/dockerhost/sys:ro
+      - /etc:/dockerhost/etc:ro
+      - /proc:/dockerhost/proc:ro
+      - /usr/lib:/dockerhost/usr/lib:ro
+    restart: unless-stopped
+
+  jackett:
+    image: ghcr.io/linuxserver/jackett
+    container_name: jackett
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=Asia/Kolkata
+      - AUTO_UPDATE=true
+      - VIRTUAL_HOST=jackett.home.lan
+      - VIRTUAL_PORT=9117
+    volumes:
+      - /storage/data/jackett/config:/config
+      - /media:/downloads
+    restart: unless-stopped
+
+  qBittorent:
+    image: ghcr.io/linuxserver/qbittorrent
+    container_name: qBittorent
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=Asia/Kolkata
+      - WEBUI_PORT=8080
+      - VIRTUAL_HOST=torrent.home.lan
+      - VIRTUAL_PORT=8080
+    volumes:
+      - /storage/data/qbittorent/config:/config
+      - /media/Media:/downloads
+    ports:
+      - 6881:6881
+      - 6881:6881/udp
+    restart: unless-stopped
+
+  greentunnel:
+    image: sadeghhayeri/green-tunnel:arm
+    container_name: greentunnel
+    restart: unless-stopped
+
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    environment:
+      - TZ=Asia/Kolkata
+      - VIRTUAL_HOST=pihole.home.lan
+      - VIRTUAL_PORT=80
+    env_file: pihole.env
+    volumes:
+      - /storage/data/pihole/etc-pihole:/etc/pihole/
+      - /storage/data/pihole/etc-dnsmasq.d:/etc/dnsmasq.d/
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+      - 8000:80/tcp
+    restart: unless-stopped
+
+  filebrowser:
+    image: hurlenko/filebrowser
+    container_name: filebrowser
+    environment:
+      - VIRTUAL_HOST=files.home.lan
+      - VIRTUAL_PORT=8080
+    volumes:
+      - /media:/data
+      - /storage/data/filebrowser/config:/config
+    restart: unless-stopped
+
+  proxy:
+    image: jwilder/nginx-proxy
+    container_name: proxy
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    ports:
+      - 80:80
+    restart: unless-stopped
